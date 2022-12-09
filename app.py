@@ -102,7 +102,7 @@ with col1:
         cam_state, img = cam.read()
         #if switch:
         
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
         FRAME_WINDOW.image(img)  
 
 
@@ -122,10 +122,9 @@ with col1:
         cam.release()
     
     #test for existence of image
-    image = cv2.imread("opencv.png")
-    if image is None:
-        st.write('No Image Located')
-    else:
-        image = Image.open("opencv.png")
+    #image = cv2.imread("opencv.png")
+    #if image is None:
+    #    st.write('No Image Located')
+    #else:
+    #    image = Image.open("opencv.png")
 
-#idea 3. web scrapper - csv
