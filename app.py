@@ -3,11 +3,37 @@ import cv2
 import numpy as np
 from PIL import Image, ImageOps
 import io
+from streamlit_webrtc import VideoTransformerBase, webrtc_streamer
+import threading
+from typing import Union
+import av
 
 
 import streamlit as st
 import tensorflow as tf
 np.set_printoptions(precision=1)
+
+
+class VideoTransformer(VideoTransformerBase):
+        frame_lock: threading.Lock  # `transform()` is running in another thread, then a lock object is used here for thread-safety.
+        in_image: Union[np.ndarray, None]
+        out_image: Union[np.ndarray, None]
+
+        def __init__(self) -> None:
+            self.frame_lock = threading.Lock()
+            self.in_image = None
+            self.out_image = None
+
+        def transform(self, frame: av.VideoFrame) -> np.ndarray:
+            in_image = frame.to_ndarray(format="bgr24")
+
+            out_image = in_image[:, ::-1, :]  # Simple flipping for example.
+
+            with self.frame_lock:
+                self.in_image = in_image
+                self.out_image = out_image
+
+            return out_image
 
 def emotion_classifier(image_file, model_location):
 
@@ -93,26 +119,35 @@ with col1:
     FRAME_WINDOW = st.image([])
 
     if switch == "On":
-        st.success("Camera On") #notification
+        st.success("Turn Camera On") #notification
         
         #st_frame = st.empty()
-       
-        btn_mood = st.button("Capture Mood")
            
-        cam_state, img = cam.read()
+        #cam_state, img = cam.read()
         #if switch:
-        
-        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-        FRAME_WINDOW.image(img)  
+        #      
+        #img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+        #FRAME_WINDOW.image(img)  
 
+
+        #STREAMER----------------    
+        ctx  = webrtc_streamer(key="emotion-app", #video_frame_callback=VideoTransformer,
+            video_processor_factory=VideoTransformer
+        )
+
+        btn_mood = st.button("Capture Mood")
+            
+        
 
         if btn_mood:    
-            #FRAME_WINDOW.image(img)
-            # encode
-            pil_image = take_a_shot(img)
+            #FRAME_WINDOW.image(img)           
+            out_image = ctx.video_transformer.out_image
+            
+            pil_image = take_a_shot(out_image)
             
             #pass image from memory into model
             emotion_classifier(pil_image, "keras_model.h5")
+            
             pil_image=None
                 
                 
